@@ -12,15 +12,3 @@ export type IContent<T> = {
     error: IError | null;
     success: boolean;
 }
-
-export type IParams =
-    {
-        [key: string]: {
-            required?: boolean;
-            regex?: RegExp;
-            min?: number;
-            max?: number;
-            value: any;
-        }
-    }
-

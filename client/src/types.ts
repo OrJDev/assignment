@@ -9,3 +9,9 @@ export type IGender = {
     gender: 'male' | 'female';
     probability: number;
 }
+
+export type IUser = {
+    user: string;
+    nation: INation;
+    gender: IGender;
+}

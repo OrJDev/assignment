@@ -1,6 +1,6 @@
 import express, { Application, NextFunction, Request, Response } from "express";
 import cors from 'cors';
-import ORIGINS from "../constants/origins";
+import { ORIGINS } from "../constants";
 import * as content from '../functions/content';
 import router from "../router";
 
@@ -9,7 +9,9 @@ export default function InitApp(app: Application) {
     app.use(cors({
         optionsSuccessStatus: 200,
         origin: (origin, callback) => {
-            if (!origin || ORIGINS.indexOf(origin) === -1) {
+            if (process.env['MD'] !== 'prod') {
+                return callback(null, true)
+            } else if (!origin || ORIGINS.indexOf(origin) === -1) {
                 return callback(new Error('Invalid Origin'), false)
             } else {
                 return callback(null, true)

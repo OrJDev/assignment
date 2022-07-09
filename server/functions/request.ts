@@ -3,13 +3,12 @@ import { IGender, INation } from '../types/Api';
 import { IContent } from '../types/Content';
 import * as content from "./content";
 import _ from 'lodash';
+import { fixGender, fixNation } from './utils';
 
 export async function getGenderDetails(name: string): Promise<IContent<IGender>> {
     try {
-        let resp = await axios(`https://api.genderize.io/?name=${name}`);
-        let res: IGender & { count: number; name: string } =
-            { ...resp.data, probability: resp.data.probability.toFixed(2) };
-        return content.createContent<IGender>(_.omit(res, ['count', 'name']))
+        let resp = fixGender(await axios(`https://api.genderize.io/?name=${name}`));
+        return content.createContent<IGender>(resp);
     } catch (e) {
         return content.createErr<IGender>(e)
     }
@@ -17,23 +16,8 @@ export async function getGenderDetails(name: string): Promise<IContent<IGender>>
 
 export async function getNationDetails(name: string): Promise<IContent<INation>> {
     try {
-        let resp = await axios(`https://api.nationalize.io/?name=${name}`);
-        let { country } = resp.data
-        if (Array.isArray(country)) {
-            country = country.reduce((acc, curr) => {
-                if (curr.probability > acc.probability) return curr;
-                return acc;
-            })
-        }
-        let res: INation & { name: string } =
-        {
-            ...resp.data,
-            country: {
-                ...country,
-                probability: country.probability.toFixed(2)
-            }
-        };
-        return content.createContent<INation>(_.omit(res, ['name']))
+        let resp = fixNation(await axios(`https://api.nationalize.io/?name=${name}`));
+        return content.createContent<INation>(resp)
     } catch (e) {
         return content.createErr<INation>(e)
     }
@@ -41,18 +25,20 @@ export async function getNationDetails(name: string): Promise<IContent<INation>>
 
 
 
-type IResp = { nation: INation; gender: IGender; }
+type IResp = {
+    nation: INation;
+    gender: IGender;
+}
 export async function getDetails(name: string): Promise<IContent<IResp>> {
     try {
-        let nationCtx = await getNationDetails(name);
-        if (nationCtx.error) {
-            return nationCtx as any
-        }
-        let genderCtx = await getGenderDetails(name);
-        if (genderCtx.error) {
-            return genderCtx as any;
-        }
-        return content.createContent<IResp>({ nation: nationCtx.data, gender: genderCtx.data })
+        const [gender, nation] = await Promise.all([
+            axios.get(`https://api.genderize.io/?name=${name}`),
+            axios.get(`https://api.nationalize.io/?name=${name}`)
+        ])
+        return content.createContent<IResp>({
+            nation: fixNation(nation),
+            gender: fixGender(gender)
+        })
     } catch (e) {
         return content.createErr<IResp>(e)
     }
